@@ -1,0 +1,66 @@
+name: Daily Gaming News Digest
+
+on:
+  schedule:
+    # Run at 2 PM PST (10 PM UTC in winter, 9 PM UTC in summer)
+    # This workflow will automatically adjust for PST/PDT
+    - cron: '0 22 * * *'  # 10 PM UTC (2 PM PST during standard time)
+    - cron: '0 21 * * *'  # 9 PM UTC (2 PM PDT during daylight saving)
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check timezone and determine if we should run
+        id: check_time
+        run: |
+          # Install timezone utilities
+          sudo apt-get update
+          sudo apt-get install -y tzdata
+
+          # Get current hour in Pacific time
+          PACIFIC_HOUR=$(TZ=America/Los_Angeles date +%H)
+          echo "Current Pacific hour: $PACIFIC_HOUR"
+
+          # Only run if it's 2 PM (14:00) in Pacific time
+          if [ "$PACIFIC_HOUR" -eq "14" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "It's 2 PM Pacific time - running bot"
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Not 2 PM Pacific time - skipping"
+          fi
+
+      - name: Run gaming news bot
+        if: steps.check_time.outputs.should_run == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          cd src
+          python main.py
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs
+          path: |
+            *.log
+          retention-days: 7
