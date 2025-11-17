@@ -47,8 +47,9 @@ class WebhookSender:
             title = item.get("title", "No title").strip()
             url = item.get("url", "")
 
-            # Format as: 1. [Source] Title - URL
-            message += f"{idx}. [{source}] {title} - {url}\n"
+            # Format as: 1. [Source] Title - <URL>
+            # Angle brackets prevent Discord from generating link previews
+            message += f"{idx}. [{source}] {title} - <{url}>\n"
 
         return message
 
