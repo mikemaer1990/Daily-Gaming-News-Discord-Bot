@@ -23,23 +23,25 @@ class WebhookSender:
         self.webhook_url = webhook_url
 
     def format_game_message(
-        self, game_name: str, items: List[Dict]
+        self, game_name: str, items: List[Dict], is_trending: bool = False
     ) -> str:
         """
         Format a game's content as a simple numbered list.
 
         Args:
-            game_name: Name of the game
+            game_name: Name of the game or section
             items: List of content items
+            is_trending: Whether this is the trending section
 
         Returns:
             Formatted message string
         """
         if not items:
-            return f"{game_name} - Top 5\n\nNo new content found today. Check back tomorrow!"
+            fallback_msg = "No trending news found this week." if is_trending else "No new content found this week."
+            return f"**{game_name} - Top {len(items)}**\n\n{fallback_msg}"
 
         # Start with header
-        message = f"{game_name} - Top {len(items)}\n\n"
+        message = f"**{game_name} - Top {len(items)}**\n\n"
 
         # Add each item as numbered list
         for idx, item in enumerate(items, 1):
@@ -65,13 +67,40 @@ class WebhookSender:
             True if successful, False otherwise
         """
         try:
-            # Send one message per game
-            for game_id, digest in game_digests.items():
+            # Send weekly digest header
+            header = f"# Weekly Gaming News Digest - {datetime.utcnow().strftime('%B %d, %Y')}\n"
+            payload = {"content": header}
+
+            try:
+                response = requests.post(self.webhook_url, json=payload, timeout=30)
+                response.raise_for_status()
+                logger.info("Sent weekly digest header")
+            except Exception as e:
+                logger.warning(f"Failed to send header: {e}")
+
+            time.sleep(1)
+
+            # Define section order: trending first, then games
+            section_order = []
+            if "trending" in game_digests:
+                section_order.append("trending")
+
+            # Add all other game sections
+            for game_id in game_digests.keys():
+                if game_id != "trending":
+                    section_order.append(game_id)
+
+            # Send one message per section
+            for game_id in section_order:
+                digest = game_digests[game_id]
                 game_name = digest["name"]
                 items = digest.get("items", [])
 
+                # Check if this is the trending section
+                is_trending = (game_id == "trending")
+
                 # Format message
-                message_content = self.format_game_message(game_name, items)
+                message_content = self.format_game_message(game_name, items, is_trending)
 
                 # Prepare payload as simple text message
                 payload = {"content": message_content}
@@ -102,7 +131,7 @@ class WebhookSender:
                 # Small delay between messages to avoid rate limiting
                 time.sleep(1)
 
-            logger.info("Successfully sent all game digests to Discord")
+            logger.info("Successfully sent all sections to Discord")
             return True
 
         except Exception as e:

@@ -58,3 +58,6 @@ data/sent_items.json
 
 # GitHub Actions
 .github/workflows/*.log
+
+# Claude Code temp files
+tmpclaude-*

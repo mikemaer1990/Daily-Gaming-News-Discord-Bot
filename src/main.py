@@ -115,7 +115,7 @@ def process_and_rank_content(
 def main():
     """Main execution function."""
     logger.info("=" * 60)
-    logger.info("Gaming News Bot - Starting Daily Digest Generation")
+    logger.info("Gaming News Bot - Starting Weekly Digest Generation")
     logger.info("=" * 60)
 
     try:
@@ -139,6 +139,25 @@ def main():
                 "items": top_items
             }
 
+        # Aggregate trending gaming news (general, not game-specific)
+        logger.info(f"\n{'=' * 60}")
+        logger.info("Aggregating Trending Gaming News")
+        logger.info(f"{'=' * 60}")
+
+        trending_items = []
+        try:
+            news_agg = NewsAggregator()
+            trending_items = news_agg.aggregate_trending_gaming_news(count=3)
+            logger.info(f"Got {len(trending_items)} trending gaming news items")
+        except Exception as e:
+            logger.error(f"Failed to aggregate trending gaming news: {e}")
+
+        # Add trending section to digests
+        game_digests["trending"] = {
+            "name": "Top Gaming News",
+            "items": trending_items
+        }
+
         # Send to Discord
         logger.info(f"\n{'=' * 60}")
         logger.info("Sending digest to Discord")
@@ -148,7 +167,7 @@ def main():
         success = webhook_sender.send_digest(game_digests)
 
         if success:
-            logger.info("✓ Successfully sent daily gaming news digest!")
+            logger.info("✓ Successfully sent weekly gaming news digest!")
             return 0
         else:
             logger.error("✗ Failed to send digest to Discord")

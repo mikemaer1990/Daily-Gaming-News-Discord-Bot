@@ -66,7 +66,17 @@ PRIORITY_WEIGHTS = {
 MAX_CONTENT_AGE_DAYS = 7  # Don't include content older than this
 PREFERRED_CONTENT_AGE_HOURS = 24  # Prefer content from last 24 hours
 FALLBACK_CONTENT_AGE_HOURS = 72  # Fallback to 72 hours if not enough content
-ITEMS_PER_GAME = 5  # Number of items to include per game
+ITEMS_PER_GAME = 10  # Number of items to include per game
+
+# Source distribution for balanced mix (for 10 items)
+SOURCE_DISTRIBUTION = {
+    "news": (3, 4),      # 3-4 news articles
+    "reddit": (3, 4),    # 3-4 Reddit posts
+    "youtube": (2, 3),   # 2-3 YouTube videos
+}
+
+# Games to exclude from trending news section
+EXCLUDED_GAMES = ["fortnite"]
 
 # Content Type Emojis
 CONTENT_EMOJIS = {

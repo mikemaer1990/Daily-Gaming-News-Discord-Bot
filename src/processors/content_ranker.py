@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
     PRIORITY_WEIGHTS, PREFERRED_CONTENT_AGE_HOURS,
-    FALLBACK_CONTENT_AGE_HOURS, ITEMS_PER_GAME
+    FALLBACK_CONTENT_AGE_HOURS, ITEMS_PER_GAME, SOURCE_DISTRIBUTION
 )
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ class ContentRanker:
         self, items: List[Dict], official_sources: List[str], count: int = ITEMS_PER_GAME
     ) -> List[Dict]:
         """
-        Select the top N items ensuring diversity of source types.
+        Select the top N items ensuring diversity of source types with balanced distribution.
 
         Args:
             items: List of content items
@@ -166,7 +166,7 @@ class ContentRanker:
             count: Number of items to select
 
         Returns:
-            Top N items with source diversity
+            Top N items with balanced source diversity
         """
         # First rank all items
         ranked_items = self.rank_content(items, official_sources)
@@ -187,33 +187,45 @@ class ContentRanker:
             if source_type in by_source:
                 by_source[source_type].append(item)
 
-        # Calculate how many items to pick from each source
-        # Aim for roughly equal distribution, prioritizing sources with content
-        available_sources = {k: v for k, v in by_source.items() if v}
-        num_sources = len(available_sources)
+        # Calculate target distribution based on SOURCE_DISTRIBUTION config
+        # Target the midpoint of each range
+        target_distribution = {}
+        for source_type, (min_val, max_val) in SOURCE_DISTRIBUTION.items():
+            target_distribution[source_type] = (min_val + max_val) // 2
 
-        if num_sources == 0:
-            logger.warning("No items available from any source")
-            return []
-
-        # Distribute items across sources
         selected = []
-        items_per_source = max(1, count // num_sources)
+        selected_ids = set()  # Track selected item IDs to avoid duplicates
 
-        # Round-robin selection from each source
-        for source_type in ["reddit", "youtube", "news"]:
-            if source_type in available_sources:
-                # Take top ranked items from this source
-                source_items = by_source[source_type][:items_per_source]
-                selected.extend(source_items)
+        # First pass: Try to get target number from each source
+        remaining_slots = count
+        for source_type in ["news", "reddit", "youtube"]:  # Order by priority
+            target = target_distribution.get(source_type, 0)
+            available = by_source[source_type]
 
-        # If we don't have enough items yet, fill with highest-ranked remaining items
-        if len(selected) < count:
-            for item in ranked_items:
-                if item not in selected:
+            # Adjust target if we don't have enough slots remaining
+            actual_target = min(target, remaining_slots, len(available))
+
+            # Select top-ranked items from this source
+            for item in available[:actual_target]:
+                item_id = item.get("url", id(item))
+                if item_id not in selected_ids:
                     selected.append(item)
-                    if len(selected) >= count:
+                    selected_ids.add(item_id)
+                    remaining_slots -= 1
+
+        # Second pass: Fill remaining slots with highest-ranked items from any source
+        if remaining_slots > 0:
+            for item in ranked_items:
+                item_id = item.get("url", id(item))
+                if item_id not in selected_ids:
+                    selected.append(item)
+                    selected_ids.add(item_id)
+                    remaining_slots -= 1
+                    if remaining_slots <= 0:
                         break
+
+        # Sort selected items by rank score to maintain quality ordering
+        selected.sort(key=lambda x: x["rank_score"], reverse=True)
 
         # Trim to exact count if we went over
         selected = selected[:count]
@@ -226,7 +238,8 @@ class ContentRanker:
                 source_counts[source_type] += 1
 
         logger.info(
-            f"Selected {len(selected)} items with source distribution: {source_counts}"
+            f"Selected {len(selected)} items with source distribution: {source_counts} "
+            f"(target: {target_distribution})"
         )
 
         return selected

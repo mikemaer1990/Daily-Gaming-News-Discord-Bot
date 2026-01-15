@@ -1,11 +1,11 @@
-name: Daily Gaming News Digest
+name: Weekly Gaming News Digest
 
 on:
   schedule:
-    # Run at 2 PM PST/PDT (22:00 UTC)
-    # Note: During PDT (March-November), this is 3 PM Pacific
-    # During PST (November-March), this is 2 PM Pacific
-    - cron: '0 22 * * *'
+    # Run every Friday at 8 AM PST (16:00 UTC)
+    # Note: During PDT (March-November), this is 9 AM Pacific
+    # During PST (November-March), this is 8 AM Pacific
+    - cron: '0 16 * * 5'
   workflow_dispatch:  # Allow manual trigger for testing
 
 jobs:
