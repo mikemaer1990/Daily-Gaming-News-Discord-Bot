@@ -34,8 +34,11 @@ class WebhookSender:
             is_trending: Whether this is the trending section
 
         Returns:
-            Formatted message string
+            Formatted message string (max 2000 chars for Discord limit)
         """
+        MAX_MESSAGE_LENGTH = 2000
+        MAX_TITLE_LENGTH = 100
+
         if not items:
             fallback_msg = "No trending news found this week." if is_trending else "No new content found this week."
             return f"**{game_name} - Top {len(items)}**\n\n{fallback_msg}"
@@ -49,9 +52,23 @@ class WebhookSender:
             title = item.get("title", "No title").strip()
             url = item.get("url", "")
 
+            # Truncate long titles
+            if len(title) > MAX_TITLE_LENGTH:
+                title = title[:MAX_TITLE_LENGTH - 3] + "..."
+
             # Format as: 1. [Source] Title - <URL>
             # Angle brackets prevent Discord from generating link previews
-            message += f"{idx}. [{source}] {title} - <{url}>\n"
+            line = f"{idx}. [{source}] {title} - <{url}>\n"
+
+            # Check if adding this line would exceed the limit
+            if len(message) + len(line) > MAX_MESSAGE_LENGTH:
+                # Truncate and add indicator that items were cut
+                remaining = MAX_MESSAGE_LENGTH - len(message) - 20
+                if remaining > 0:
+                    message += f"... and {len(items) - idx + 1} more items"
+                break
+
+            message += line
 
         return message
 
