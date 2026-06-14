@@ -81,6 +81,13 @@ SOURCE_DISTRIBUTION = {
 # Games to exclude from trending news section
 EXCLUDED_GAMES = ["fortnite", "battlefield", "arc raiders"]
 
+# YouTube videos containing these words are filtered out
+YOUTUBE_BLOCKED_KEYWORDS = [
+    "hack", "cheat", "aimbot", "esp", "wallhack", "spinbot",
+    "bypass", "undetected", "free hack", "keydrop", "promo code",
+    "skin gambling", "case opening", "skin changer",
+]
+
 # Content Type Emojis
 CONTENT_EMOJIS = {
     "official": "🔥",

@@ -22,55 +22,40 @@ class WebhookSender:
     def __init__(self, webhook_url: str = DISCORD_WEBHOOK_URL):
         self.webhook_url = webhook_url
 
-    def format_game_message(
+    def format_game_messages(
         self, game_name: str, items: List[Dict], is_trending: bool = False
-    ) -> str:
-        """
-        Format a game's content as a simple numbered list.
-
-        Args:
-            game_name: Name of the game or section
-            items: List of content items
-            is_trending: Whether this is the trending section
-
-        Returns:
-            Formatted message string (max 2000 chars for Discord limit)
-        """
+    ) -> List[str]:
+        """Format a game's content as one or more numbered list messages, split at Discord's 2000 char limit."""
         MAX_MESSAGE_LENGTH = 2000
         MAX_TITLE_LENGTH = 100
 
         if not items:
             fallback_msg = "No trending news found this week." if is_trending else "No new content found this week."
-            return f"**{game_name} - Top {len(items)}**\n\n{fallback_msg}"
+            return [f"**{game_name} - Top {len(items)}**\n\n{fallback_msg}"]
 
-        # Start with header
-        message = f"**{game_name} - Top {len(items)}**\n\n"
+        messages = []
+        current = f"**{game_name} - Top {len(items)}**\n\n"
 
-        # Add each item as numbered list
         for idx, item in enumerate(items, 1):
             source = item.get("source", "Unknown")
             title = item.get("title", "No title").strip()
             url = item.get("url", "")
 
-            # Truncate long titles
             if len(title) > MAX_TITLE_LENGTH:
                 title = title[:MAX_TITLE_LENGTH - 3] + "..."
 
-            # Format as: 1. [Source] Title - <URL>
-            # Angle brackets prevent Discord from generating link previews
             line = f"{idx}. [{source}] {title} - <{url}>\n"
 
-            # Check if adding this line would exceed the limit
-            if len(message) + len(line) > MAX_MESSAGE_LENGTH:
-                # Truncate and add indicator that items were cut
-                remaining = MAX_MESSAGE_LENGTH - len(message) - 20
-                if remaining > 0:
-                    message += f"... and {len(items) - idx + 1} more items"
-                break
+            if len(current) + len(line) > MAX_MESSAGE_LENGTH:
+                messages.append(current)
+                current = line
+            else:
+                current += line
 
-            message += line
+        if current:
+            messages.append(current)
 
-        return message
+        return messages
 
     def send_digest(self, game_digests: Dict[str, Dict]) -> bool:
         """
@@ -116,37 +101,29 @@ class WebhookSender:
                 # Check if this is the trending section
                 is_trending = (game_id == "trending")
 
-                # Format message
-                message_content = self.format_game_message(game_name, items, is_trending)
+                # Format into one or more messages (splits at 2000 char limit)
+                parts = self.format_game_messages(game_name, items, is_trending)
 
-                # Prepare payload as simple text message
-                payload = {"content": message_content}
+                for part in parts:
+                    for attempt in range(1, MAX_RETRIES + 1):
+                        try:
+                            response = requests.post(
+                                self.webhook_url,
+                                json={"content": part},
+                                timeout=30
+                            )
+                            response.raise_for_status()
+                            logger.info(f"Successfully sent {game_name} part to Discord")
+                            break
+                        except requests.exceptions.RequestException as e:
+                            logger.error(f"Attempt {attempt}/{MAX_RETRIES} failed for {game_name}: {e}")
+                            if attempt < MAX_RETRIES:
+                                time.sleep(RETRY_DELAY)
+                            else:
+                                logger.error(f"All retry attempts failed for {game_name}")
+                                return False
 
-                # Send with retry logic
-                for attempt in range(1, MAX_RETRIES + 1):
-                    try:
-                        response = requests.post(
-                            self.webhook_url,
-                            json=payload,
-                            timeout=30
-                        )
-                        response.raise_for_status()
-
-                        logger.info(f"Successfully sent {game_name} digest to Discord")
-                        break
-
-                    except requests.exceptions.RequestException as e:
-                        logger.error(f"Attempt {attempt}/{MAX_RETRIES} failed for {game_name}: {e}")
-
-                        if attempt < MAX_RETRIES:
-                            logger.info(f"Retrying in {RETRY_DELAY} seconds...")
-                            time.sleep(RETRY_DELAY)
-                        else:
-                            logger.error(f"All retry attempts failed for {game_name}")
-                            return False
-
-                # Small delay between messages to avoid rate limiting
-                time.sleep(1)
+                    time.sleep(1)
 
             logger.info("Successfully sent all sections to Discord")
             return True

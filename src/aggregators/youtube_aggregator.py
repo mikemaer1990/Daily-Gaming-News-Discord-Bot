@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
     YOUTUBE_API_KEY, YOUTUBE_MAX_RESULTS, YOUTUBE_SEARCH_DAYS,
-    MAX_CONTENT_AGE_DAYS
+    MAX_CONTENT_AGE_DAYS, YOUTUBE_BLOCKED_KEYWORDS
 )
 
 logger = logging.getLogger(__name__)
@@ -106,6 +106,14 @@ class YouTubeAggregator:
                 days=MAX_CONTENT_AGE_DAYS
             )
             if timestamp < cutoff_date:
+                return None
+
+            # Filter out cheat/hack content
+            title_lower = snippet["title"].lower()
+            description_lower = snippet.get("description", "").lower()
+            combined = f"{title_lower} {description_lower}"
+            if any(blocked in combined for blocked in YOUTUBE_BLOCKED_KEYWORDS):
+                logger.debug(f"Filtered blocked video: {snippet['title']}")
                 return None
 
             # Extract view count (use as engagement metric)
