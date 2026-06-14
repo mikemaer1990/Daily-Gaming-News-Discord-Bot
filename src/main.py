@@ -57,7 +57,8 @@ def aggregate_content_for_game(
     # Aggregate from YouTube
     try:
         logger.info("Fetching from YouTube...")
-        youtube_videos = youtube_agg.aggregate_for_game(game_config["keywords"])
+        youtube_queries = game_config.get("youtube_queries", game_config["keywords"])
+        youtube_videos = youtube_agg.aggregate_for_game(youtube_queries)
         all_content.extend(youtube_videos)
         logger.info(f"Got {len(youtube_videos)} YouTube videos")
     except Exception as e:

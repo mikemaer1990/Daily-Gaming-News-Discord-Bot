@@ -85,7 +85,7 @@ class WebhookSender:
         """
         try:
             # Send weekly digest header
-            header = f"# Weekly Gaming News Digest - {datetime.utcnow().strftime('%B %d, %Y')}\n"
+            header = f"# CS2 Weekly Digest - {datetime.utcnow().strftime('%B %d, %Y')}\n"
             payload = {"content": header}
 
             try:

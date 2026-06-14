@@ -53,15 +53,17 @@ class ContentRanker:
 
         # News articles from major outlets
         if source_type == "news":
-            major_outlets = ["ign", "kotaku", "pc gamer", "polygon", "eurogamer", "vg247"]
-            if any(outlet in source for outlet in major_outlets):
+            major_outlets = ["hltv", "dotesports", "pc gamer", "polygon", "eurogamer", "vg247"]
+            if any(outlet in source.lower() for outlet in major_outlets):
                 return "major_news"
 
         # YouTube videos
         if source_type == "youtube":
-            # Check if from official channels or major outlets
-            trusted_channels = ["ign", "gamespot", "eurogamer", "pc gamer", "polygon"]
-            if any(channel in source for channel in trusted_channels):
+            trusted_channels = [
+                "esl", "blast", "counter-strike", "hltv", "valve",
+                "eurogamer", "pc gamer", "polygon", "vg247"
+            ]
+            if any(channel in source.lower() for channel in trusted_channels):
                 return "major_news"
             else:
                 return "community"

@@ -17,17 +17,19 @@ if not YOUTUBE_API_KEY:
 
 # Games Configuration
 GAMES = {
-    "battlefield6": {
-        "name": "Battlefield 6",
-        "keywords": ["battlefield 6", "battlefield6", "bf6", "battlefield 2042"],
-        "subreddits": ["battlefield", "Battlefield6"],
-        "official_sources": ["EA", "DICE", "Battlefield"],
-    },
-    "arcraiders": {
-        "name": "Arc Raiders",
-        "keywords": ["arc raiders", "arcraiders"],
-        "subreddits": ["arcraiders"],
-        "official_sources": ["Embark Studios", "Arc Raiders"],
+    "cs2": {
+        "name": "Counter-Strike 2",
+        "keywords": ["counter-strike 2", "cs2", "csgo", "counter-strike"],
+        "youtube_queries": [
+            "CS2 news 2026",
+            "CS2 update patch notes",
+            "CS2 guide 2026",
+            "CS2 pro match highlights",
+            "CS2 tips tricks 2026",
+            "CS2 tournament 2026",
+        ],
+        "subreddits": ["GlobalOffensive", "cs2"],
+        "official_sources": ["Valve", "Counter-Strike", "CS2"],
     }
 }
 
@@ -40,14 +42,15 @@ REDDIT_TIMEOUT = 10  # seconds
 YOUTUBE_MAX_RESULTS = 10
 YOUTUBE_SEARCH_DAYS = 7  # Search for videos from last N days
 YOUTUBE_RELEVANT_CHANNELS = [
-    "IGN", "GameSpot", "Eurogamer", "PC Gamer", "Polygon",
-    "VG247", "Battlefield", "Embark Studios"
+    "ESL Counter-Strike", "BLAST Premier", "Counter-Strike",
+    "HLTV", "3kliksphilip", "BananaGaming", "NaVi", "FaZe Clan",
+    "ProGuides CS2", "Valve"
 ]
 
 # News Sites RSS Feeds
 NEWS_RSS_FEEDS = {
-    "ign": "https://feeds.ign.com/ign/all",
-    "kotaku": "https://kotaku.com/rss",
+    "hltv": "https://www.hltv.org/rss/news",
+    "dotesports": "https://dotesports.com/feed",
     "pcgamer": "https://www.pcgamer.com/rss/",
     "polygon": "https://www.polygon.com/rss/index.xml",
     "vg247": "https://www.vg247.com/feed",
@@ -66,17 +69,17 @@ PRIORITY_WEIGHTS = {
 MAX_CONTENT_AGE_DAYS = 7  # Don't include content older than this
 PREFERRED_CONTENT_AGE_HOURS = 24  # Prefer content from last 24 hours
 FALLBACK_CONTENT_AGE_HOURS = 72  # Fallback to 72 hours if not enough content
-ITEMS_PER_GAME = 10  # Number of items to include per game
+ITEMS_PER_GAME = 15  # Number of items to include per game
 
-# Source distribution for balanced mix (for 10 items)
+# Source distribution (15 items, YouTube ~50%)
 SOURCE_DISTRIBUTION = {
-    "news": (3, 4),      # 3-4 news articles
+    "news": (3, 5),      # 3-5 news articles
     "reddit": (3, 4),    # 3-4 Reddit posts
-    "youtube": (2, 3),   # 2-3 YouTube videos
+    "youtube": (7, 8),   # 7-8 YouTube videos (~50%)
 }
 
 # Games to exclude from trending news section
-EXCLUDED_GAMES = ["fortnite"]
+EXCLUDED_GAMES = ["fortnite", "battlefield", "arc raiders"]
 
 # Content Type Emojis
 CONTENT_EMOJIS = {
